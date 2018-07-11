@@ -181,6 +181,31 @@ void init_instance_extension_names(struct sample_info &info) {
 #else
     info.instance_extension_names.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
 #endif
+
+    info.instance_layer_names.push_back("VK_LAYER_LUNARG_standard_validation");
+    if (!demo_check_layers(info.instance_layer_properties,
+                           info.instance_layer_names)) {
+      /* If standard validation is not present, search instead for the
+       * individual layers that make it up, in the correct order.
+       */
+      info.instance_layer_names.clear();
+      info.instance_layer_names.push_back("VK_LAYER_GOOGLE_threading");
+      info.instance_layer_names.push_back(
+          "VK_LAYER_LUNARG_parameter_validation");
+      info.instance_layer_names.push_back("VK_LAYER_LUNARG_object_tracker");
+      info.instance_layer_names.push_back("VK_LAYER_LUNARG_core_validation");
+      info.instance_layer_names.push_back("VK_LAYER_LUNARG_image");
+      info.instance_layer_names.push_back("VK_LAYER_LUNARG_swapchain");
+      info.instance_layer_names.push_back("VK_LAYER_GOOGLE_unique_objects");
+
+      if (!demo_check_layers(info.instance_layer_properties,
+                             info.instance_layer_names)) {
+        exit(1);
+      }
+    }
+
+    /* Enable debug callback extension */
+    info.instance_extension_names.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 }
 
 VkResult init_instance(struct sample_info &info, char const *const app_short_name) {

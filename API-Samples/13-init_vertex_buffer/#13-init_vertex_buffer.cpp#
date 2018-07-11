@@ -52,76 +52,6 @@ const char* vertShaderText =
     "  fragColor = doSample(tmp, infoParameters_samp);\n"
     "}";
 
-/*
-struct mvpMatrix{
-  float posX, posY, posZ, posW;
-};
-
-
-struct Vertex{
-  float posX, posY, posZ;
-  float colorR, colorG, colorB;
-
-  static VkVertexInputBindingDescription getBindingDescription() {
-    VkVertexInputBindingDescription bindingDescription = {};
-    bindingDescription.binding = 0;
-    bindingDescription.stride = sizeof(Vertex);
-    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-    return bindingDescription;
-  }
-
-  static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions(){
-    std::vector<VkVertexInputAttributeDescription> attribDescriptions (2);
-    attribDescriptions[0].binding = 0;
-    attribDescriptions[0].location = 0;
-    attribDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attribDescriptions[0].offset = offsetof(Vertex, pos);
-
-    attribDescriptions[1].binding = 0;
-    attribDescriptions[1].location = 1;
-    attribDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attribDescriptions[1].offset = offsetof(Vertex, color);
-
-    return attribDescriptions;
-  }
-};
-
-const char *vertShaderText =
-    "version 450\n"
-    "layout(binding = 0) uniform ubo\n"
-    "  mat4 uMVPMatrix;\n"
-    "};\n"
-    "layout(location = 0) in vec3 inPosition;\n"
-    "layout(location = 1) in vec3 inColor;\n"
-    "layout(location = 0) out vec3 fragColor;\n"
-    "void main() {\n"
-    "  gl_position = uMVPMatrix * vec4(inPosition, 1.0);\n";
-    "  fragColor = inColor;\n"
-    "}";
-
-const char *fragShaderText =
-    "#version 450\n"
-    "#extension GL_ARB_separate_shader_objects : enable\n"
-    "layout(location = 0) out vec4 outColor;\n"
-    "layout(location = 0) in vec3 fragColor;\n"
-    "void main() {\n"
-    "  outColor = vec4(fragColor, 1.0);\n"
-    "}";
-
-
-const std::vector<Vertex> vertices = {
-  {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-  {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},
-  {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}},
-  {{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}}
-};
-
-const std::vector<uint16_t> indices = {
-  0, 1, 2, 2, 3, 0
-};
-*/
-
 void createUniformBuffer(sample_info &info){
   struct shaderInfo uniformData = {};
   uniformData.posX = 1.0f;
@@ -307,7 +237,6 @@ int sample_main(int argc, char *argv[]) {
     createDescriptorSet(info);
 
     init_renderpass(info, depthPresent);
-
     init_shaders(info, vertShaderText, nullptr);
 
     //vkDestroySemaphore(info.device, imageAcquiredSemaphore, NULL);
