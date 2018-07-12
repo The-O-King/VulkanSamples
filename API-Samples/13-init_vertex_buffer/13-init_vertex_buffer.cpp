@@ -30,31 +30,12 @@ Create Vertex Buffer
 #include <cstdlib>
 
 
-struct shaderInfo{
-  float posX, posY;
-};
 
-const char* vertShaderText =
-    "#version 450 core\n"
-    "struct info {\n"
-    "  vec2 texCoord;\n"
-    "};\n"
-    "layout(binding=0, set=0) uniform block {\n"
-    "    info infoParameters;\n"
-    "};\n"
-    "layout(binding=1, set=1) uniform sampler2D infoParameters_samp[2];\n"
-    "layout(location=0) out vec4 fragColor;\n"
-    "vec4 doSample(info params, sampler2D params_samp[2]) {\n"
-    "  return texture(params_samp[0], params.texCoord);\n"
-    "}\n"
-    "void main() {\n"
-    "  info tmp = infoParameters;\n"
-    "  fragColor = doSample(tmp, infoParameters_samp);\n"
-    "}";
-
-/*
 struct mvpMatrix{
-  float posX, posY, posZ, posW;
+  float posX, posY, posZ, posW,
+    posA, posB, posC, posD,
+    posE, posF, posG, posH,
+    posI, posJ, posK, posL;
 };
 
 
@@ -76,33 +57,32 @@ struct Vertex{
     attribDescriptions[0].binding = 0;
     attribDescriptions[0].location = 0;
     attribDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attribDescriptions[0].offset = offsetof(Vertex, pos);
+    attribDescriptions[0].offset = offsetof(Vertex, posX);
 
     attribDescriptions[1].binding = 0;
     attribDescriptions[1].location = 1;
     attribDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attribDescriptions[1].offset = offsetof(Vertex, color);
+    attribDescriptions[1].offset = offsetof(Vertex, colorR);
 
     return attribDescriptions;
   }
 };
 
 const char *vertShaderText =
-    "version 450\n"
-    "layout(binding = 0) uniform ubo\n"
+    "#version 450\n"
+    "layout(binding = 0) uniform ubo {\n"
     "  mat4 uMVPMatrix;\n"
     "};\n"
     "layout(location = 0) in vec3 inPosition;\n"
     "layout(location = 1) in vec3 inColor;\n"
     "layout(location = 0) out vec3 fragColor;\n"
     "void main() {\n"
-    "  gl_position = uMVPMatrix * vec4(inPosition, 1.0);\n";
+    "  gl_Position = uMVPMatrix * vec4(inPosition, 1.0);\n"
     "  fragColor = inColor;\n"
     "}";
 
 const char *fragShaderText =
     "#version 450\n"
-    "#extension GL_ARB_separate_shader_objects : enable\n"
     "layout(location = 0) out vec4 outColor;\n"
     "layout(location = 0) in vec3 fragColor;\n"
     "void main() {\n"
@@ -110,22 +90,73 @@ const char *fragShaderText =
     "}";
 
 
-const std::vector<Vertex> vertices = {
-  {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-  {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},
-  {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}},
-  {{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}}
+const std::vector<Vertex> vertices =
+{
+  {-0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f},
+  {0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f},
+  {0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f},
+  {-0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 1.0f}
 };
 
 const std::vector<uint16_t> indices = {
   0, 1, 2, 2, 3, 0
 };
-*/
+
+
+void createVertexBuffer(sample_info &info){
+  VkResult U_ASSERT_ONLY res;
+  bool U_ASSERT_ONLY pass;
+
+  VkBufferCreateInfo buf_info = {};
+  buf_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+  buf_info.pNext = NULL;
+  buf_info.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+  buf_info.size = sizeof(vertices);
+  buf_info.queueFamilyIndexCount = 0;
+  buf_info.pQueueFamilyIndices = NULL;
+  buf_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+  buf_info.flags = 0;
+  res = vkCreateBuffer(info.device, &buf_info, NULL, &info.vertex_buffer.buf);
+  assert(res == VK_SUCCESS);
+
+  VkMemoryRequirements mem_reqs;
+  vkGetBufferMemoryRequirements(info.device, info.vertex_buffer.buf, &mem_reqs);
+  VkMemoryAllocateInfo alloc_info = {};
+  alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+  alloc_info.pNext = NULL;
+  alloc_info.memoryTypeIndex = 0;
+  alloc_info.allocationSize = mem_reqs.size;
+
+  pass = memory_type_from_properties(info, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &alloc_info.memoryTypeIndex);
+
+  assert(pass && "No mappable, coherent memory");
+  res = vkAllocateMemory(info.device, &alloc_info, NULL, &(info.vertex_buffer.mem));
+  assert(res == VK_SUCCESS);
+
+  info.vertex_buffer.buffer_info.range = mem_reqs.size;
+  info.vertex_buffer.buffer_info.offset = 0;
+
+  uint8_t *pData;
+  res = vkMapMemory(info.device, info.vertex_buffer.mem, 0, mem_reqs.size, 0, (void **)&pData);
+  assert(res == VK_SUCCESS);
+
+  memcpy(pData, vertices.data(), sizeof(vertices));
+  vkUnmapMemory(info.device, info.vertex_buffer.mem);
+  res = vkBindBufferMemory(info.device, info.vertex_buffer.buf, info.vertex_buffer.mem, 0);
+  assert(res == VK_SUCCESS);
+
+  info.vi_binding = Vertex::getBindingDescription();
+  info.vi_attribs[0] = Vertex::getAttributeDescriptions()[0];
+  info.vi_attribs[1] = Vertex::getAttributeDescriptions()[1];
+}
 
 void createUniformBuffer(sample_info &info){
-  struct shaderInfo uniformData = {};
+  struct mvpMatrix uniformData = {};
   uniformData.posX = 1.0f;
   uniformData.posY = 1.0f;
+  uniformData.posZ = 1.0f;
+  uniformData.posW = 1.0f;
 
   VkResult U_ASSERT_ONLY res;
   bool U_ASSERT_ONLY pass;
@@ -176,24 +207,12 @@ void createUniformBuffer(sample_info &info){
 void createDescriptorAndPipelineLayout(sample_info &info){
   VkResult U_ASSERT_ONLY res;
 
-  VkDescriptorSetLayoutBinding layout_bindings[3];
+  VkDescriptorSetLayoutBinding layout_bindings[1];
   layout_bindings[0].binding = 0;
   layout_bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
   layout_bindings[0].descriptorCount = 1;
-  layout_bindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+  layout_bindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
   layout_bindings[0].pImmutableSamplers = NULL;
-
-  layout_bindings[1].binding = 0;
-  layout_bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-  layout_bindings[1].descriptorCount = 1;
-  layout_bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-  layout_bindings[1].pImmutableSamplers = NULL;
-
-  layout_bindings[2].binding = 1;
-  layout_bindings[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-  layout_bindings[2].descriptorCount = 2;
-  layout_bindings[2].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-  layout_bindings[2].pImmutableSamplers = NULL;
 
   VkDescriptorSetLayoutCreateInfo set0_info = {};
   set0_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -202,50 +221,38 @@ void createDescriptorAndPipelineLayout(sample_info &info){
   set0_info.bindingCount = 1;
   set0_info.pBindings = &layout_bindings[0];
 
-
-  VkDescriptorSetLayoutCreateInfo set1_info = {};
-  set1_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-  set1_info.pNext = NULL;
-  set1_info.flags = NULL;
-  set1_info.bindingCount = 2;
-  set1_info.pBindings = &layout_bindings[1];
-
-  VkDescriptorSetLayout myDescriptorSetLayout[2];
+  VkDescriptorSetLayout myDescriptorSetLayout[1];
   res = vkCreateDescriptorSetLayout(info.device, &set0_info, NULL, &myDescriptorSetLayout[0]);
   assert(res == VK_SUCCESS);
-  res = vkCreateDescriptorSetLayout(info.device, &set1_info, NULL, &myDescriptorSetLayout[1]);
-  assert(res == VK_SUCCESS);
   info.desc_layout.push_back(myDescriptorSetLayout[0]);
-  info.desc_layout.push_back(myDescriptorSetLayout[1]);
 
   VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo = {};
   pPipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
   pPipelineLayoutCreateInfo.pNext = NULL;
   pPipelineLayoutCreateInfo.pushConstantRangeCount = 0;
   pPipelineLayoutCreateInfo.pPushConstantRanges = NULL;
-  pPipelineLayoutCreateInfo.setLayoutCount = 2;
+  pPipelineLayoutCreateInfo.setLayoutCount = 1;
   pPipelineLayoutCreateInfo.pSetLayouts = info.desc_layout.data();
 
   res = vkCreatePipelineLayout(info.device, &pPipelineLayoutCreateInfo, NULL,
                              &info.pipeline_layout);
+  assert(res == VK_SUCCESS);
 
 }
 
-void createDescriptorSet(sample_info &info){
+void createDescriptorPoolAndSet(sample_info &info){
   VkResult U_ASSERT_ONLY res;
 
-  VkDescriptorPoolSize type_count[2];
+  VkDescriptorPoolSize type_count[1];
   type_count[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
   type_count[0].descriptorCount = 1;
-  type_count[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-  type_count[1].descriptorCount = 3;
 
 
   VkDescriptorPoolCreateInfo poolCreateInfo = {};
   poolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
   poolCreateInfo.pNext = NULL;
-  poolCreateInfo.maxSets = 2;
-  poolCreateInfo.poolSizeCount = 2;
+  poolCreateInfo.maxSets = 1;
+  poolCreateInfo.poolSizeCount = 1;
   poolCreateInfo.pPoolSizes = type_count;
 
   res = vkCreateDescriptorPool(info.device, &poolCreateInfo, NULL, &info.desc_pool);
@@ -254,14 +261,14 @@ void createDescriptorSet(sample_info &info){
   alloc_info[0].sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
   alloc_info[0].pNext = NULL;
   alloc_info[0].descriptorPool = info.desc_pool;
-  alloc_info[0].descriptorSetCount = 2;
+  alloc_info[0].descriptorSetCount = 1;
   alloc_info[0].pSetLayouts = info.desc_layout.data();
 
-  info.desc_set.resize(2);
+  info.desc_set.resize(1);
   res = vkAllocateDescriptorSets(info.device, alloc_info, info.desc_set.data());
   assert (res == VK_SUCCESS);
 
-  VkWriteDescriptorSet writes[2];
+  VkWriteDescriptorSet writes[1];
   writes[0] = {};
   writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
   writes[0].pNext = NULL;
@@ -271,16 +278,8 @@ void createDescriptorSet(sample_info &info){
   writes[0].pBufferInfo = &info.uniform_data.buffer_info;
   writes[0].dstArrayElement = 0;
   writes[0].dstBinding = 0;
-  writes[1] = {};
-  writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-  writes[1].dstSet = info.desc_set[1];
-  writes[1].dstBinding = 1;
-  writes[1].descriptorCount = 1;
-  writes[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-  writes[1].pImageInfo = &info.texture_data.image_info;
-  writes[1].dstArrayElement = 0;
 
-  vkUpdateDescriptorSets(info.device, 2, writes, 0, NULL);
+  vkUpdateDescriptorSets(info.device, 1, writes, 0, NULL);
 }
 
 int sample_main(int argc, char *argv[]) {
@@ -300,19 +299,27 @@ int sample_main(int argc, char *argv[]) {
     init_command_buffer(info);
     execute_begin_command_buffer(info);
     init_device_queue(info);
-    init_texture(info);
-
+    // Custom code for benchmark
+    createVertexBuffer(info);
     createUniformBuffer(info);
     createDescriptorAndPipelineLayout(info);
-    createDescriptorSet(info);
-
+    createDescriptorPoolAndSet(info);
+    // Custom code end for benchmark
     init_renderpass(info, depthPresent);
+    init_shaders(info, vertShaderText, fragShaderText);
+    init_pipeline_cache(info);
+    init_pipeline(info, false, true);
 
-    init_shaders(info, vertShaderText, nullptr);
+    // Begin renderpass
 
-    //vkDestroySemaphore(info.device, imageAcquiredSemaphore, NULL);
-    vkDestroyBuffer(info.device, info.vertex_buffer.buf, NULL);
-    vkFreeMemory(info.device, info.vertex_buffer.mem, NULL);
+
+    destroy_pipeline(info);
+    destroy_pipeline_cache(info);
+    destroy_descriptor_pool(info);
+    destroy_uniform_buffer(info);
+    destroy_vertex_buffer(info);
+    destroy_descriptor_and_pipeline_layouts(info);
+    destroy_shaders(info);
     destroy_renderpass(info);
     destroy_command_buffer(info);
     destroy_command_pool(info);
