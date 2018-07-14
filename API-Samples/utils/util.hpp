@@ -120,6 +120,7 @@ struct texture_object {
 typedef struct _swap_chain_buffers {
     VkImage image;
     VkImageView view;
+    VkDeviceMemory mem;
 } swap_chain_buffer;
 
 /*

@@ -204,6 +204,62 @@ void createUniformBuffer(sample_info &info){
   info.uniform_data.buffer_info.range = sizeof(uniformData);
 }
 
+void createFramebuffer(sample_info &info){
+  VkResult U_ASSERT_ONLY res;
+  bool U_ASSERT_ONLY pass;
+
+  float width = 512;
+  float height = 512;
+
+  VkImageCreateInfo imageCreateInfo;
+  imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+  imageCreateInfo.pNext = NULL;
+  imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+  imageCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+  imageCreateInfo.extent.width = width;
+  imageCreateInfo.extent.height = height;
+  imageCreateInfo.extent.depth = 1;
+  imageCreateInfo.mipLevels = 1;
+  imageCreateInfo.arrayLayers = 1;
+  imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+  imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+  imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+  imageCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+  imageCreateInfo.flags = 0;
+
+  VkMemoryAllocateInfo allocInfo = {};
+  VkMemoryRequirements memReqs;
+
+  info.buffers.resize(1);
+  info.swapchainImageCount = 1;
+  res = vkCreateImage(info.device, &imageCreateInfo, NULL, &(info.buffers[0].image));
+  assert(res == VK_SUCCESS);
+
+  vkGetImageMemoryRequirements(info.device, info.buffers[0].image, &memReqs);
+  allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+  allocInfo.pNext = NULL;
+  allocInfo.allocationSize = memReqs.size;
+  pass = memory_type_from_properties(info, memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &allocInfo.memoryTypeIndex);
+  assert(pass && "No device local memory");
+  vkAllocateMemory(info.device, &allocInfo, NULL, &(info.buffers[0].mem));
+  vkBindImageMemory(info.device, info.buffers[0].image, info.buffers[0].mem, 0);
+
+  VkImageViewCreateInfo imageViewCreateInfo = {};
+  imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+  imageViewCreateInfo.pNext = NULL;
+  imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+  imageViewCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+  imageViewCreateInfo.subresourceRange = {};
+  imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+  imageViewCreateInfo.subresourceRange.levelCount = 1;
+  imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+  imageViewCreateInfo.subresourceRange.layerCount = 1;
+  imageViewCreateInfo.image = info.buffers[0].image;
+  res = vkCreateImageView(info.device, &imageViewCreateInfo, NULL, &(info.buffers[0].view));
+  assert(res == VK_SUCCESS);
+}
+
 void createDescriptorAndPipelineLayout(sample_info &info){
   VkResult U_ASSERT_ONLY res;
 
@@ -282,6 +338,14 @@ void createDescriptorPoolAndSet(sample_info &info){
   vkUpdateDescriptorSets(info.device, 1, writes, 0, NULL);
 }
 
+void my_destroy_framebuffers(sample_info &info){
+  for(int x = 0; x < info.swapchainImageCount; x++){
+    vkDestroyImage(info.device, info.buffers[0].image, NULL);
+    vkDestroyImageView(info.device, info.buffers[0].view, NULL);
+    vkFreeMemory(info.device, info.buffers[0].mem, NULL);
+  }
+}
+
 int sample_main(int argc, char *argv[]) {
     VkResult U_ASSERT_ONLY res;
     bool U_ASSERT_ONLY pass;
@@ -302,6 +366,7 @@ int sample_main(int argc, char *argv[]) {
     // Custom code for benchmark
     createVertexBuffer(info);
     createUniformBuffer(info);
+    createFramebuffer(info);
     createDescriptorAndPipelineLayout(info);
     createDescriptorPoolAndSet(info);
     // Custom code end for benchmark
@@ -309,13 +374,13 @@ int sample_main(int argc, char *argv[]) {
     init_shaders(info, vertShaderText, fragShaderText);
     init_pipeline_cache(info);
     init_pipeline(info, false, true);
-
     // Begin renderpass
 
 
     destroy_pipeline(info);
     destroy_pipeline_cache(info);
     destroy_descriptor_pool(info);
+    my_destroy_framebuffers(info); //Using the swapchain container for offscreen framebuffer
     destroy_uniform_buffer(info);
     destroy_vertex_buffer(info);
     destroy_descriptor_and_pipeline_layouts(info);
