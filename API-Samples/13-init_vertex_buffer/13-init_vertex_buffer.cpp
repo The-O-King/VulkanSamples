@@ -90,7 +90,7 @@ const char *fragShaderText =
     "}";
 
 
-const std::vector<Vertex> vertices =
+const std::vector<Vertex> verticesIndexed =
 {
   {-0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f},
   {0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f},
@@ -100,6 +100,14 @@ const std::vector<Vertex> vertices =
 
 const std::vector<uint16_t> indices = {
   0, 1, 2, 2, 3, 0
+};
+
+const std::vector<Vertex> vertices =
+{
+  {-0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f},
+  {0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f},
+  {0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f},
+  //{-0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 1.0f}
 };
 
 
@@ -258,6 +266,20 @@ void createFramebuffer(sample_info &info){
   imageViewCreateInfo.image = info.buffers[0].image;
   res = vkCreateImageView(info.device, &imageViewCreateInfo, NULL, &(info.buffers[0].view));
   assert(res == VK_SUCCESS);
+
+  info.framebuffers = (VkFramebuffer *)malloc(info.swapchainImageCount * sizeof(VkFramebuffer));
+  VkImageView attachments = info.buffers[0].view;
+  VkFramebufferCreateInfo framebufferCreateInfo = {};
+  framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+  framebufferCreateInfo.pNext = NULL;
+  framebufferCreateInfo.renderPass = info.render_pass;
+  framebufferCreateInfo.attachmentCount = 1;
+  framebufferCreateInfo.pAttachments = &attachments;
+  framebufferCreateInfo.width = width;
+  framebufferCreateInfo.height = height;
+  framebufferCreateInfo.layers = 1;
+  res = vkCreateFramebuffer(info.device, &framebufferCreateInfo, NULL, info.framebuffers);
+  assert(res == VK_SUCCESS);
 }
 
 void createDescriptorAndPipelineLayout(sample_info &info){
@@ -273,7 +295,7 @@ void createDescriptorAndPipelineLayout(sample_info &info){
   VkDescriptorSetLayoutCreateInfo set0_info = {};
   set0_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
   set0_info.pNext = NULL;
-  set0_info.flags = NULL;
+  set0_info.flags = 0;
   set0_info.bindingCount = 1;
   set0_info.pBindings = &layout_bindings[0];
 
@@ -340,15 +362,15 @@ void createDescriptorPoolAndSet(sample_info &info){
 
 void my_destroy_framebuffers(sample_info &info){
   for(int x = 0; x < info.swapchainImageCount; x++){
-    vkDestroyImage(info.device, info.buffers[0].image, NULL);
-    vkDestroyImageView(info.device, info.buffers[0].view, NULL);
-    vkFreeMemory(info.device, info.buffers[0].mem, NULL);
+    vkDestroyFramebuffer(info.device, info.framebuffers[x], NULL);
+    vkDestroyImage(info.device, info.buffers[x].image, NULL);
+    vkDestroyImageView(info.device, info.buffers[x].view, NULL);
+    vkFreeMemory(info.device, info.buffers[x].mem, NULL);
   }
 }
 
 int sample_main(int argc, char *argv[]) {
     VkResult U_ASSERT_ONLY res;
-    bool U_ASSERT_ONLY pass;
     struct sample_info info = {};
     char sample_title[] = "Vertex Buffer Sample";
     const bool depthPresent = false;
@@ -363,6 +385,8 @@ int sample_main(int argc, char *argv[]) {
     init_command_buffer(info);
     execute_begin_command_buffer(info);
     init_device_queue(info);
+    info.format = VK_FORMAT_R8G8B8A8_UNORM; //Needed since we do not call init_window which sets the renderpass format
+    init_renderpass(info, depthPresent);
     // Custom code for benchmark
     createVertexBuffer(info);
     createUniformBuffer(info);
@@ -370,13 +394,91 @@ int sample_main(int argc, char *argv[]) {
     createDescriptorAndPipelineLayout(info);
     createDescriptorPoolAndSet(info);
     // Custom code end for benchmark
-    init_renderpass(info, depthPresent);
     init_shaders(info, vertShaderText, fragShaderText);
     init_pipeline_cache(info);
     init_pipeline(info, false, true);
     // Begin renderpass
 
+    VkClearValue clear_values[2];
+    clear_values[0].color.float32[0] = 0.2f;
+    clear_values[0].color.float32[1] = 0.2f;
+    clear_values[0].color.float32[2] = 0.2f;
+    clear_values[0].color.float32[3] = 0.2f;
 
+    VkRenderPassBeginInfo rp_begin;
+    rp_begin.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    rp_begin.pNext = NULL;
+    rp_begin.renderPass = info.render_pass;
+    rp_begin.framebuffer = info.framebuffers[0];
+    rp_begin.renderArea.offset.x = 0;
+    rp_begin.renderArea.offset.y = 0;
+    rp_begin.renderArea.extent.width = 512;
+    rp_begin.renderArea.extent.height = 512;
+    rp_begin.clearValueCount = 1;
+    rp_begin.pClearValues = clear_values;
+
+    vkCmdBeginRenderPass(info.cmd, &rp_begin, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBindPipeline(info.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, info.pipeline);
+    vkCmdBindDescriptorSets(info.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            info.pipeline_layout, 0, 1, info.desc_set.data(), 0, NULL);
+    const VkDeviceSize offsets[1] = {0};
+    vkCmdBindVertexBuffers(info.cmd, 0, 1, &info.vertex_buffer.buf, offsets);
+
+#ifdef __ANDROID__
+    // Some drivers don't like setting viewport and scissor
+#else
+    info.viewport.height = 512.0f;
+    info.viewport.width = 512.0f;
+    info.viewport.minDepth = 0.0f;
+    info.viewport.maxDepth = 1.0f;
+    info.viewport.x = 0;
+    info.viewport.y = 0;
+    vkCmdSetViewport(info.cmd, 0, 1, &info.viewport);
+
+    info.scissor.extent.width = info.width;
+    info.scissor.extent.height = info.height;
+    info.scissor.offset.x = 0;
+    info.scissor.offset.y = 0;
+    vkCmdSetScissor(info.cmd, 0, NUM_SCISSORS, &info.scissor);
+#endif
+
+    vkCmdDraw(info.cmd, 3, 1, 0, 0);
+    vkCmdEndRenderPass(info.cmd);
+    res = vkEndCommandBuffer(info.cmd);
+    assert(res == VK_SUCCESS);
+
+    const VkCommandBuffer cmd_bufs[] = {info.cmd};
+    VkFenceCreateInfo fenceInfo;
+    VkFence drawFence;
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceInfo.pNext = NULL;
+    fenceInfo.flags = 0;
+    vkCreateFence(info.device, &fenceInfo, NULL, &drawFence);
+
+    VkPipelineStageFlags pipe_stage_flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    VkSubmitInfo submit_info[1] = {};
+    submit_info[0].pNext = NULL;
+    submit_info[0].sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submit_info[0].waitSemaphoreCount = 0;
+    submit_info[0].pWaitSemaphores = NULL;
+    submit_info[0].pWaitDstStageMask = &pipe_stage_flags;
+    submit_info[0].commandBufferCount = 1;
+    submit_info[0].pCommandBuffers = cmd_bufs;
+    submit_info[0].signalSemaphoreCount = 0;
+    submit_info[0].pSignalSemaphores = NULL;
+
+    res = vkQueueSubmit(info.graphics_queue, 1, submit_info, drawFence);
+    assert(res == VK_SUCCESS);
+
+        /* Make sure command buffer is finished before presenting */
+    do {
+        res = vkWaitForFences(info.device, 1, &drawFence, VK_TRUE, FENCE_TIMEOUT);
+    } while (res == VK_TIMEOUT);
+    // End Render Pass
+
+
+    // Clean up time
+    vkDestroyFence(info.device, drawFence, NULL);
     destroy_pipeline(info);
     destroy_pipeline_cache(info);
     destroy_descriptor_pool(info);
