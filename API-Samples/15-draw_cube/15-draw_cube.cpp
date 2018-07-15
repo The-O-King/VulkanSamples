@@ -60,6 +60,56 @@ static const char *fragShaderText =
     "   outColor = color;\n"
     "}\n";
 
+void init_command_buffer2(struct sample_info &info) {
+    /* DEPENDS on init_swapchain_extension() and init_command_pool() */
+    VkResult U_ASSERT_ONLY res;
+
+    VkCommandBufferAllocateInfo cmd = {};
+    cmd.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    cmd.pNext = NULL;
+    cmd.commandPool = info.cmd_pool;
+    cmd.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
+    cmd.commandBufferCount = 1;
+
+    res = vkAllocateCommandBuffers(info.device, &cmd, &info.cmd2);
+    assert(res == VK_SUCCESS);
+}
+
+void destroy_command_buffer2(struct sample_info &info){
+    VkCommandBuffer cmd_bufs[1] = {info.cmd2};
+    vkFreeCommandBuffers(info.device, info.cmd_pool, 1, cmd_bufs);
+}
+
+void init_viewports2(struct sample_info &info) {
+#ifdef __ANDROID__
+    // Disable dynamic viewport on Android. Some drive has an issue with the dynamic viewport
+    // feature.
+#else
+    info.viewport.height = (float)info.height;
+    info.viewport.width = (float)info.width;
+    info.viewport.minDepth = (float)0.0f;
+    info.viewport.maxDepth = (float)1.0f;
+    info.viewport.x = 0;
+    info.viewport.y = 0;
+    vkCmdSetViewport(info.cmd2, 0, NUM_VIEWPORTS, &info.viewport);
+#endif
+}
+
+void init_scissors2(struct sample_info &info) {
+#ifdef __ANDROID__
+    // Disable dynamic viewport on Android. Some drive has an issue with the dynamic scissors
+    // feature.
+#else
+    info.scissor.extent.width = info.width;
+    info.scissor.extent.height = info.height;
+    info.scissor.offset.x = 0;
+    info.scissor.offset.y = 0;
+    vkCmdSetScissor(info.cmd2, 0, NUM_SCISSORS, &info.scissor);
+#endif
+}
+
+
+
 int sample_main(int argc, char *argv[]) {
     VkResult U_ASSERT_ONLY res;
     struct sample_info info = {};
@@ -80,6 +130,7 @@ int sample_main(int argc, char *argv[]) {
 
     init_command_pool(info);
     init_command_buffer(info);
+    init_command_buffer2(info);
     execute_begin_command_buffer(info);
     init_device_queue(info);
     init_swap_chain(info);
@@ -134,21 +185,51 @@ int sample_main(int argc, char *argv[]) {
     rp_begin.clearValueCount = 2;
     rp_begin.pClearValues = clear_values;
 
-    vkCmdBeginRenderPass(info.cmd, &rp_begin, VK_SUBPASS_CONTENTS_INLINE);
 
-    vkCmdBindPipeline(info.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, info.pipeline);
-    vkCmdBindDescriptorSets(info.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, info.pipeline_layout, 0, NUM_DESCRIPTOR_SETS,
+
+    // Record Secondary Command Buffer
+    VkCommandBufferInheritanceInfo inherit_info = {};
+    inherit_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
+    inherit_info.pNext = NULL;
+    inherit_info.renderPass = info.render_pass;
+    inherit_info.subpass = 0;
+    inherit_info.framebuffer = info.framebuffers[info.current_buffer];
+    inherit_info.occlusionQueryEnable = false;
+    inherit_info.queryFlags = 0;
+    inherit_info.pipelineStatistics = 0;
+
+    VkCommandBufferBeginInfo cmd_buf_info = {};
+    cmd_buf_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    cmd_buf_info.pNext = NULL;
+    cmd_buf_info.flags = 0;
+    cmd_buf_info.pInheritanceInfo = &inherit_info;
+    res = vkBeginCommandBuffer(info.cmd2, &cmd_buf_info);
+    assert(res == VK_SUCCESS);
+
+    vkCmdBindPipeline(info.cmd2, VK_PIPELINE_BIND_POINT_GRAPHICS, info.pipeline);
+    vkCmdBindDescriptorSets(info.cmd2, VK_PIPELINE_BIND_POINT_GRAPHICS, info.pipeline_layout, 0, NUM_DESCRIPTOR_SETS,
                             info.desc_set.data(), 0, NULL);
 
     const VkDeviceSize offsets[1] = {0};
-    vkCmdBindVertexBuffers(info.cmd, 0, 1, &info.vertex_buffer.buf, offsets);
+    vkCmdBindVertexBuffers(info.cmd2, 0, 1, &info.vertex_buffer.buf, offsets);
 
-    init_viewports(info);
-    init_scissors(info);
+    init_viewports2(info);
+    init_scissors2(info);
 
     vkCmdDraw(info.cmd, 12 * 3, 1, 0, 0);
+    res = vkEndCommandBuffer(info.cmd2);
+    // Record Secondary Command Buffer End
+
+
+
+    // Record Primary Command Buffer Begin
+    vkCmdBeginRenderPass(info.cmd, &rp_begin, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+    vkCmdExecuteCommands(info.cmd, 1, &info.cmd2);
     vkCmdEndRenderPass(info.cmd);
-    res = vkEndCommandBuffer(info.cmd);
+    vkEndCommandBuffer(info.cmd);
+    // Record Primary Command Buffer End
+
+
     const VkCommandBuffer cmd_bufs[] = {info.cmd};
     VkFenceCreateInfo fenceInfo;
     VkFence drawFence;

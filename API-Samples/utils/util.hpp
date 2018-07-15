@@ -231,6 +231,7 @@ struct sample_info {
     glm::mat4 MVP;
 
     VkCommandBuffer cmd; // Buffer for initialization commands
+    VkCommandBuffer cmd2; // Place to hold secondary command buffer
     VkPipelineLayout pipeline_layout;
     std::vector<VkDescriptorSetLayout> desc_layout;
     VkPipelineCache pipelineCache;
