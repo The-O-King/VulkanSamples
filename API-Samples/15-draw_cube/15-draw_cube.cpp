@@ -293,6 +293,7 @@ int sample_main(int argc, char *argv[]) {
     destroy_depth_buffer(info);
     destroy_swap_chain(info);
     destroy_command_buffer(info);
+    destroy_command_buffer2(info);
     destroy_command_pool(info);
     destroy_device(info);
     destroy_window(info);
