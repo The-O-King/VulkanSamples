@@ -173,7 +173,7 @@ int sample_main(int argc, char *argv[]) {
     res = vkCreateFence(info.device, &fenceInfo, NULL, &drawFence);
     assert(res == VK_SUCCESS);
 
-    for (int x = 0; x < 10000; x++){
+    for (int x = 0; x < 100000; x++){
       info.current_buffer = x % info.swapchainImageCount;
 
       // Get the index of the next available swapchain image:
@@ -182,7 +182,8 @@ int sample_main(int argc, char *argv[]) {
       // TODO: Deal with the VK_SUBOPTIMAL_KHR and VK_ERROR_OUT_OF_DATE_KHR
       // return codes
       assert(res == VK_SUCCESS);
-
+      /*
+      ///////////////////////Primary Command Buffer Begin////////////////////////////
       VkRenderPassBeginInfo rp_begin;
       rp_begin.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
       rp_begin.pNext = NULL;
@@ -195,7 +196,76 @@ int sample_main(int argc, char *argv[]) {
       rp_begin.clearValueCount = 2;
       rp_begin.pClearValues = clear_values;
 
+      execute_begin_command_buffer(info);
+      vkCmdBeginRenderPass(info.cmd, &rp_begin, VK_SUBPASS_CONTENTS_INLINE);
 
+      vkCmdBindPipeline(info.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, info.pipeline);
+      vkCmdBindDescriptorSets(info.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, info.pipeline_layout, 0, NUM_DESCRIPTOR_SETS,
+                              info.desc_set.data(), 0, NULL);
+
+      const VkDeviceSize offsets[1] = {0};
+      vkCmdBindVertexBuffers(info.cmd, 0, 1, &info.vertex_buffer.buf, offsets);
+
+      init_viewports(info);
+      init_scissors(info);
+
+      vkCmdDraw(info.cmd, 12 * 3, 1, 0, 0);
+      vkCmdEndRenderPass(info.cmd);
+      res = vkEndCommandBuffer(info.cmd);
+
+      const VkCommandBuffer cmd_bufs[] = {info.cmd};
+      VkPipelineStageFlags pipe_stage_flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+      VkSubmitInfo submit_info[1] = {};
+      submit_info[0].pNext = NULL;
+      submit_info[0].sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+      submit_info[0].waitSemaphoreCount = 1;
+      submit_info[0].pWaitSemaphores = &imageAcquiredSemaphore;
+      submit_info[0].pWaitDstStageMask = &pipe_stage_flags;
+      submit_info[0].commandBufferCount = 1;
+      submit_info[0].pCommandBuffers = cmd_bufs;
+      submit_info[0].signalSemaphoreCount = 0;
+      submit_info[0].pSignalSemaphores = NULL;
+
+      // Queue the command buffer for execution
+      res = vkQueueSubmit(info.graphics_queue, 1, submit_info, drawFence);
+      assert(res == VK_SUCCESS);
+
+      // Now present the image in the window
+
+      VkPresentInfoKHR present;
+      present.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+      present.pNext = NULL;
+      present.swapchainCount = 1;
+      present.pSwapchains = &info.swap_chain;
+      present.pImageIndices = &info.current_buffer;
+      present.pWaitSemaphores = NULL;
+      present.waitSemaphoreCount = 0;
+      present.pResults = NULL;
+
+      // Make sure command buffer is finished before presenting
+      do {
+        res = vkWaitForFences(info.device, 1, &drawFence, VK_TRUE, FENCE_TIMEOUT);
+      } while (res == VK_TIMEOUT);
+      vkResetFences(info.device, 1, &drawFence);
+
+      assert(res == VK_SUCCESS);
+      res = vkQueuePresentKHR(info.present_queue, &present);
+      assert(res == VK_SUCCESS);
+      ///////////////Primary Command Buffer End/////////////////////////
+      */
+
+      ///////////////Secondary Command Buffer Begin////////////////////
+      VkRenderPassBeginInfo rp_begin;
+      rp_begin.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+      rp_begin.pNext = NULL;
+      rp_begin.renderPass = info.render_pass;
+      rp_begin.framebuffer = info.framebuffers[info.current_buffer];
+      rp_begin.renderArea.offset.x = 0;
+      rp_begin.renderArea.offset.y = 0;
+      rp_begin.renderArea.extent.width = info.width;
+      rp_begin.renderArea.extent.height = info.height;
+      rp_begin.clearValueCount = 2;
+      rp_begin.pClearValues = clear_values;
 
       // Record Secondary Command Buffer
       VkCommandBufferInheritanceInfo inherit_info = {};
@@ -254,11 +324,11 @@ int sample_main(int argc, char *argv[]) {
       submit_info[0].signalSemaphoreCount = 0;
       submit_info[0].pSignalSemaphores = NULL;
 
-      /* Queue the command buffer for execution */
+      // Queue the command buffer for execution
       res = vkQueueSubmit(info.graphics_queue, 1, submit_info, drawFence);
       assert(res == VK_SUCCESS);
 
-      /* Now present the image in the window */
+      // Now present the image in the window
 
       VkPresentInfoKHR present;
       present.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -270,7 +340,7 @@ int sample_main(int argc, char *argv[]) {
       present.waitSemaphoreCount = 0;
       present.pResults = NULL;
 
-      /* Make sure command buffer is finished before presenting */
+      // Make sure command buffer is finished before presenting
       do {
         res = vkWaitForFences(info.device, 1, &drawFence, VK_TRUE, FENCE_TIMEOUT);
       } while (res == VK_TIMEOUT);
@@ -279,6 +349,7 @@ int sample_main(int argc, char *argv[]) {
       assert(res == VK_SUCCESS);
       res = vkQueuePresentKHR(info.present_queue, &present);
       assert(res == VK_SUCCESS);
+      /////////////////Secondary Command Buffer End//////////////////////////
     }
 
     /* VULKAN_KEY_END */
