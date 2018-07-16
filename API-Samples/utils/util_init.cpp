@@ -956,7 +956,7 @@ void init_swap_chain(struct sample_info &info, VkImageUsageFlags usageFlags) {
 
     // The FIFO present mode is guaranteed by the spec to be supported
     // Also note that current Android driver only supports FIFO
-    VkPresentModeKHR swapchainPresentMode = VK_PRESENT_MODE_FIFO_KHR;
+    VkPresentModeKHR swapchainPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
 
     // Determine the number of VkImage's to use in the swap chain.
     // We need to acquire only 1 presentable image at at time.
