@@ -127,8 +127,13 @@ int sample_main(int argc, char *argv[]) {
     res = vkCreateFence(info.device, &fenceInfo, NULL, &drawFence);
     assert(res == VK_SUCCESS);
 
+#ifdef __ANDROID__
+  int frames = 2000;
+#else
+  int frames = 100000;
+#endif
     auto start = std::chrono::high_resolution_clock::now();
-    for (int x = 0; x < 100000; x++){
+    for (int x = 0; x < frames; x++){
       info.current_buffer = x % info.swapchainImageCount;
 
       // Get the index of the next available swapchain image:
@@ -137,12 +142,12 @@ int sample_main(int argc, char *argv[]) {
       // TODO: Deal with the VK_SUBOPTIMAL_KHR and VK_ERROR_OUT_OF_DATE_KHR
       // return codes
       assert(res == VK_SUCCESS);
-      primaryCommandBufferBenchmark(info, clear_values, drawFence, imageAcquiredSemaphore);
+      secondaryCommandBufferBenchmark(info, clear_values, drawFence, imageAcquiredSemaphore);
     }
     auto finish = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = finish - start;
     std::cout << "Elapsed time: " << elapsed.count() << " s\n";
-
+    LOGE("Elapsed Time: %f", elapsed.count());
     /* VULKAN_KEY_END */
     if (info.save_images) write_ppm(info, "draw_textured_cube");
 
