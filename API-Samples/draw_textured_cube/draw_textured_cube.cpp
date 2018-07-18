@@ -29,6 +29,8 @@ Draw Textured Cube
 #include <string.h>
 #include <cstdlib>
 #include "cube_data.h"
+#include "draw_benchmarks.cpp"
+#include <chrono>  // for high_resolution_clock
 
 /* For this sample, we'll start with GLSL so the shader function is plain */
 /* and then use the glslang GLSLtoSPV utility to convert it to SPIR-V for */
@@ -78,8 +80,10 @@ int sample_main(int argc, char *argv[]) {
     init_window(info);
     init_swapchain_extension(info);
     init_device(info);
+
     init_command_pool(info);
     init_command_buffer(info);
+    init_command_buffer2(info);
     execute_begin_command_buffer(info);
     init_device_queue(info);
     init_swap_chain(info);
@@ -95,6 +99,7 @@ int sample_main(int argc, char *argv[]) {
     init_descriptor_set(info, true);
     init_pipeline_cache(info);
     init_pipeline(info, depthPresent);
+    vkResetCommandBuffer(info.cmd, 0);
 
     /* VULKAN_KEY_START */
 
@@ -111,91 +116,33 @@ int sample_main(int argc, char *argv[]) {
     imageAcquiredSemaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
     imageAcquiredSemaphoreCreateInfo.pNext = NULL;
     imageAcquiredSemaphoreCreateInfo.flags = 0;
-
     res = vkCreateSemaphore(info.device, &imageAcquiredSemaphoreCreateInfo, NULL, &imageAcquiredSemaphore);
     assert(res == VK_SUCCESS);
 
-    // Get the index of the next available swapchain image:
-    res = vkAcquireNextImageKHR(info.device, info.swap_chain, UINT64_MAX, imageAcquiredSemaphore, VK_NULL_HANDLE,
-                                &info.current_buffer);
-    // TODO: Deal with the VK_SUBOPTIMAL_KHR and VK_ERROR_OUT_OF_DATE_KHR
-    // return codes
-    assert(res == VK_SUCCESS);
-
-    VkRenderPassBeginInfo rp_begin;
-    rp_begin.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    rp_begin.pNext = NULL;
-    rp_begin.renderPass = info.render_pass;
-    rp_begin.framebuffer = info.framebuffers[info.current_buffer];
-    rp_begin.renderArea.offset.x = 0;
-    rp_begin.renderArea.offset.y = 0;
-    rp_begin.renderArea.extent.width = info.width;
-    rp_begin.renderArea.extent.height = info.height;
-    rp_begin.clearValueCount = 2;
-    rp_begin.pClearValues = clear_values;
-
-    vkCmdBeginRenderPass(info.cmd, &rp_begin, VK_SUBPASS_CONTENTS_INLINE);
-
-    vkCmdBindPipeline(info.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, info.pipeline);
-    vkCmdBindDescriptorSets(info.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, info.pipeline_layout, 0, NUM_DESCRIPTOR_SETS,
-                            info.desc_set.data(), 0, NULL);
-
-    const VkDeviceSize offsets[1] = {0};
-    vkCmdBindVertexBuffers(info.cmd, 0, 1, &info.vertex_buffer.buf, offsets);
-
-    init_viewports(info);
-    init_scissors(info);
-
-    vkCmdDraw(info.cmd, 12 * 3, 1, 0, 0);
-    vkCmdEndRenderPass(info.cmd);
-    res = vkEndCommandBuffer(info.cmd);
-    assert(res == VK_SUCCESS);
-
-    const VkCommandBuffer cmd_bufs[] = {info.cmd};
     VkFenceCreateInfo fenceInfo;
     VkFence drawFence;
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fenceInfo.pNext = NULL;
     fenceInfo.flags = 0;
-    vkCreateFence(info.device, &fenceInfo, NULL, &drawFence);
-
-    VkPipelineStageFlags pipe_stage_flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    VkSubmitInfo submit_info[1] = {};
-    submit_info[0].pNext = NULL;
-    submit_info[0].sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submit_info[0].waitSemaphoreCount = 1;
-    submit_info[0].pWaitSemaphores = &imageAcquiredSemaphore;
-    submit_info[0].pWaitDstStageMask = &pipe_stage_flags;
-    submit_info[0].commandBufferCount = 1;
-    submit_info[0].pCommandBuffers = cmd_bufs;
-    submit_info[0].signalSemaphoreCount = 0;
-    submit_info[0].pSignalSemaphores = NULL;
-
-    /* Queue the command buffer for execution */
-    res = vkQueueSubmit(info.graphics_queue, 1, submit_info, drawFence);
+    res = vkCreateFence(info.device, &fenceInfo, NULL, &drawFence);
     assert(res == VK_SUCCESS);
 
-    /* Now present the image in the window */
+    auto start = std::chrono::high_resolution_clock::now();
+    for (int x = 0; x < 100000; x++){
+      info.current_buffer = x % info.swapchainImageCount;
 
-    VkPresentInfoKHR present;
-    present.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    present.pNext = NULL;
-    present.swapchainCount = 1;
-    present.pSwapchains = &info.swap_chain;
-    present.pImageIndices = &info.current_buffer;
-    present.pWaitSemaphores = NULL;
-    present.waitSemaphoreCount = 0;
-    present.pResults = NULL;
+      // Get the index of the next available swapchain image:
+      res = vkAcquireNextImageKHR(info.device, info.swap_chain, UINT64_MAX, imageAcquiredSemaphore, VK_NULL_HANDLE,
+                                  &info.current_buffer);
+      // TODO: Deal with the VK_SUBOPTIMAL_KHR and VK_ERROR_OUT_OF_DATE_KHR
+      // return codes
+      assert(res == VK_SUCCESS);
+      primaryCommandBufferBenchmark(info, clear_values, drawFence, imageAcquiredSemaphore);
+    }
+    auto finish = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = finish - start;
+    std::cout << "Elapsed time: " << elapsed.count() << " s\n";
 
-    /* Make sure command buffer is finished before presenting */
-    do {
-        res = vkWaitForFences(info.device, 1, &drawFence, VK_TRUE, FENCE_TIMEOUT);
-    } while (res == VK_TIMEOUT);
-    assert(res == VK_SUCCESS);
-    res = vkQueuePresentKHR(info.present_queue, &present);
-    assert(res == VK_SUCCESS);
-
-    wait_seconds(1);
     /* VULKAN_KEY_END */
     if (info.save_images) write_ppm(info, "draw_textured_cube");
 
@@ -214,6 +161,7 @@ int sample_main(int argc, char *argv[]) {
     destroy_depth_buffer(info);
     destroy_swap_chain(info);
     destroy_command_buffer(info);
+    destroy_command_buffer2(info);
     destroy_command_pool(info);
     destroy_device(info);
     destroy_window(info);

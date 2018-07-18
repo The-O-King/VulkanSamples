@@ -1294,6 +1294,22 @@ void init_command_buffer(struct sample_info &info) {
     res = vkAllocateCommandBuffers(info.device, &cmd, &info.cmd);
     assert(res == VK_SUCCESS);
 }
+
+void init_command_buffer2(struct sample_info &info) {
+    /* DEPENDS on init_swapchain_extension() and init_command_pool() */
+    VkResult U_ASSERT_ONLY res;
+
+    VkCommandBufferAllocateInfo cmd = {};
+    cmd.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    cmd.pNext = NULL;
+    cmd.commandPool = info.cmd_pool;
+    cmd.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
+    cmd.commandBufferCount = 1;
+
+    res = vkAllocateCommandBuffers(info.device, &cmd, &info.cmd2);
+    assert(res == VK_SUCCESS);
+}
+
 void execute_begin_command_buffer(struct sample_info &info) {
     /* DEPENDS on init_command_buffer() */
     VkResult U_ASSERT_ONLY res;
@@ -2027,6 +2043,21 @@ void init_viewports(struct sample_info &info) {
 #endif
 }
 
+void init_viewports2(struct sample_info &info) {
+#ifdef __ANDROID__
+    // Disable dynamic viewport on Android. Some drive has an issue with the dynamic viewport
+    // feature.
+#else
+    info.viewport.height = (float)info.height;
+    info.viewport.width = (float)info.width;
+    info.viewport.minDepth = (float)0.0f;
+    info.viewport.maxDepth = (float)1.0f;
+    info.viewport.x = 0;
+    info.viewport.y = 0;
+    vkCmdSetViewport(info.cmd2, 0, NUM_VIEWPORTS, &info.viewport);
+#endif
+}
+
 void init_scissors(struct sample_info &info) {
 #ifdef __ANDROID__
 // Disable dynamic viewport on Android. Some drive has an issue with the dynamic scissors
@@ -2037,6 +2068,19 @@ void init_scissors(struct sample_info &info) {
     info.scissor.offset.x = 0;
     info.scissor.offset.y = 0;
     vkCmdSetScissor(info.cmd, 0, NUM_SCISSORS, &info.scissor);
+#endif
+}
+
+void init_scissors2(struct sample_info &info) {
+#ifdef __ANDROID__
+    // Disable dynamic viewport on Android. Some drive has an issue with the dynamic scissors
+    // feature.
+#else
+    info.scissor.extent.width = info.width;
+    info.scissor.extent.height = info.height;
+    info.scissor.offset.x = 0;
+    info.scissor.offset.y = 0;
+    vkCmdSetScissor(info.cmd2, 0, NUM_SCISSORS, &info.scissor);
 #endif
 }
 
@@ -2116,6 +2160,11 @@ void destroy_shaders(struct sample_info &info) {
 
 void destroy_command_buffer(struct sample_info &info) {
     VkCommandBuffer cmd_bufs[1] = {info.cmd};
+    vkFreeCommandBuffers(info.device, info.cmd_pool, 1, cmd_bufs);
+}
+
+void destroy_command_buffer2(struct sample_info &info){
+    VkCommandBuffer cmd_bufs[1] = {info.cmd2};
     vkFreeCommandBuffers(info.device, info.cmd_pool, 1, cmd_bufs);
 }
 
