@@ -63,6 +63,7 @@ void init_swap_chain(
                                    VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 void init_depth_buffer(struct sample_info &info);
 void init_uniform_buffer(struct sample_info &info);
+void update_uniform_buffer(struct sample_info &info);
 void init_descriptor_and_pipeline_layouts(struct sample_info &info, bool use_texture,
                                           VkDescriptorSetLayoutCreateFlags descSetLayoutCreateFlags = 0);
 void init_renderpass(

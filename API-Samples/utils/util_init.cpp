@@ -28,6 +28,7 @@ samples "init" utility functions
 #include <string.h>
 #include "util_init.hpp"
 #include "cube_data.h"
+#include <chrono>
 
 #if defined(VK_USE_PLATFORM_WAYLAND_KHR)
 #include <linux/input.h>
@@ -1131,6 +1132,21 @@ void init_uniform_buffer(struct sample_info &info) {
     info.uniform_data.buffer_info.offset = 0;
     info.uniform_data.buffer_info.range = sizeof(info.MVP);
 }
+
+void update_uniform_buffer(struct sample_info &info){
+  static auto startTime = std::chrono::high_resolution_clock::now();
+
+  auto currentTime = std::chrono::high_resolution_clock::now();
+  float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+  //info.Model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+  info.Model = glm::scale(info.Model, glm::vec3(time * .25f, time * .25f, time * .25f));
+  info.MVP = info.Clip * info.Projection * info.View * info.Model;
+  uint8_t *pData;
+  vkMapMemory(info.device, info.uniform_data.mem, 0, sizeof(info.MVP), 0, (void **) &pData);
+  memcpy(pData, &info.MVP, sizeof(info.MVP));
+  vkUnmapMemory(info.device, info.uniform_data.mem);
+}
+
 
 void init_descriptor_and_pipeline_layouts(struct sample_info &info, bool use_texture,
                                           VkDescriptorSetLayoutCreateFlags descSetLayoutCreateFlags) {

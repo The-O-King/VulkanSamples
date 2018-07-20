@@ -129,7 +129,7 @@ int sample_main(int argc, char *argv[]) {
 #ifdef __ANDROID__
     int frames = 2000;
 #else
-    int frames = 100000;
+    int frames = 200000;
 #endif
     auto start = std::chrono::high_resolution_clock::now();
     for (int x = 0; x < frames; x++){
@@ -146,7 +146,9 @@ int sample_main(int argc, char *argv[]) {
     auto finish = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = finish - start;
     std::cout << "Elapsed time: " << elapsed.count() << " s\n";
+#ifdef __ANDROID__
     LOGE("Elapsed Time: %f", elapsed.count());
+#endif
     /* VULKAN_KEY_END */
     if (info.save_images) write_ppm(info, "15-draw_cube");
 
