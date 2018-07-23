@@ -130,7 +130,7 @@ int sample_main(int argc, char *argv[]) {
 #ifdef __ANDROID__
   int frames = 2000;
 #else
-  int frames = 100000;
+  int frames = 200000;
 #endif
     auto start = std::chrono::high_resolution_clock::now();
     for (int x = 0; x < frames; x++){

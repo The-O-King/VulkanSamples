@@ -32,7 +32,8 @@ void primaryCommandBufferBenchmark(sample_info &info, VkClearValue *clear_values
     vkCmdDraw(info.cmd, 12, 1, 12 * (y % 3), 0);
   }
   */
-  vkCmdDraw(info.cmd, 12*3, 1, 0, 0);
+  vkCmdDraw(info.cmd, 0, 1, 0, 0);
+
   vkCmdEndRenderPass(info.cmd);
   res = vkEndCommandBuffer(info.cmd);
   assert(res == VK_SUCCESS);
@@ -126,7 +127,7 @@ void secondaryCommandBufferBenchmark(sample_info &info, VkClearValue *clear_valu
     vkCmdDraw(info.cmd2, 12, 1, 12 * (y % 3), 0);
   }
   */
-  vkCmdDraw(info.cmd2, 12*3, 1, 0, 0);
+  vkCmdDraw(info.cmd2, 0, 1, 0, 0);
   res = vkEndCommandBuffer(info.cmd2);
   assert(res == VK_SUCCESS);
   // Record Secondary Command Buffer End

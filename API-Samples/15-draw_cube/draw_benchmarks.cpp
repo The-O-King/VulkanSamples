@@ -27,7 +27,11 @@ void primaryCommandBufferBenchmark(sample_info &info, VkClearValue *clear_values
 
   init_viewports(info);
   init_scissors(info);
-
+  /*
+  for (int y = 0; y < 100; y++){
+    vkCmdDraw(info.cmd, 12, 1, 12 * (y % 3), 0);
+  }
+  */
   vkCmdDraw(info.cmd, 0, 1, 0, 0);
   vkCmdEndRenderPass(info.cmd);
   res = vkEndCommandBuffer(info.cmd);
@@ -117,7 +121,11 @@ void secondaryCommandBufferBenchmark(sample_info &info, VkClearValue *clear_valu
 
   init_viewports2(info);
   init_scissors2(info);
-
+  /*
+  for (int y = 0; y < 100; y++){
+    vkCmdDraw(info.cmd2, 12, 1, 12 * (y % 3), 0);
+  }
+  */
   vkCmdDraw(info.cmd2, 0, 1, 0, 0);
   res = vkEndCommandBuffer(info.cmd2);
   assert(res == VK_SUCCESS);
