@@ -1312,6 +1312,22 @@ void init_command_buffer(struct sample_info &info) {
     assert(res == VK_SUCCESS);
 }
 
+
+void init_command_buffer_array(struct sample_info &info) {
+    /* DEPENDS on init_swapchain_extension() and init_command_pool() */
+    VkResult U_ASSERT_ONLY res;
+
+    VkCommandBufferAllocateInfo cmd = {};
+    cmd.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    cmd.pNext = NULL;
+    cmd.commandPool = info.cmd_pool;
+    cmd.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    cmd.commandBufferCount = NUM_BUFFERS;
+
+    res = vkAllocateCommandBuffers(info.device, &cmd, info.cmds);
+    assert(res == VK_SUCCESS);
+}
+
 void init_command_buffer2(struct sample_info &info) {
     /* DEPENDS on init_swapchain_extension() and init_command_pool() */
     VkResult U_ASSERT_ONLY res;
@@ -1326,6 +1342,23 @@ void init_command_buffer2(struct sample_info &info) {
     res = vkAllocateCommandBuffers(info.device, &cmd, &info.cmd2);
     assert(res == VK_SUCCESS);
 }
+
+
+void init_command_buffer2_array(struct sample_info &info) {
+    /* DEPENDS on init_swapchain_extension() and init_command_pool() */
+    VkResult U_ASSERT_ONLY res;
+
+    VkCommandBufferAllocateInfo cmd = {};
+    cmd.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    cmd.pNext = NULL;
+    cmd.commandPool = info.cmd_pool;
+    cmd.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
+    cmd.commandBufferCount = NUM_BUFFERS;
+
+    res = vkAllocateCommandBuffers(info.device, &cmd, info.cmd2s);
+    assert(res == VK_SUCCESS);
+}
+
 
 void execute_begin_command_buffer(struct sample_info &info) {
     /* DEPENDS on init_command_buffer() */
@@ -2060,6 +2093,21 @@ void init_viewports(struct sample_info &info) {
 #endif
 }
 
+void init_viewports_array(struct sample_info &info, int index) {
+#ifdef __ANDROID__
+    // Disable dynamic viewport on Android. Some drive has an issue with the dynamic viewport
+    // feature.
+#else
+    info.viewport.height = (float)info.height;
+    info.viewport.width = (float)info.width;
+    info.viewport.minDepth = (float)0.0f;
+    info.viewport.maxDepth = (float)1.0f;
+    info.viewport.x = 0;
+    info.viewport.y = 0;
+    vkCmdSetViewport(info.cmds[index], 0, NUM_VIEWPORTS, &info.viewport);
+#endif
+}
+
 void init_viewports2(struct sample_info &info) {
 #ifdef __ANDROID__
     // Disable dynamic viewport on Android. Some drive has an issue with the dynamic viewport
@@ -2072,6 +2120,21 @@ void init_viewports2(struct sample_info &info) {
     info.viewport.x = 0;
     info.viewport.y = 0;
     vkCmdSetViewport(info.cmd2, 0, NUM_VIEWPORTS, &info.viewport);
+#endif
+}
+
+void init_viewports2_array(struct sample_info &info, int index) {
+#ifdef __ANDROID__
+    // Disable dynamic viewport on Android. Some drive has an issue with the dynamic viewport
+    // feature.
+#else
+    info.viewport.height = (float)info.height;
+    info.viewport.width = (float)info.width;
+    info.viewport.minDepth = (float)0.0f;
+    info.viewport.maxDepth = (float)1.0f;
+    info.viewport.x = 0;
+    info.viewport.y = 0;
+    vkCmdSetViewport(info.cmd2s[index], 0, NUM_VIEWPORTS, &info.viewport);
 #endif
 }
 
@@ -2088,6 +2151,19 @@ void init_scissors(struct sample_info &info) {
 #endif
 }
 
+void init_scissors_array(struct sample_info &info, int index) {
+#ifdef __ANDROID__
+// Disable dynamic viewport on Android. Some drive has an issue with the dynamic scissors
+// feature.
+#else
+    info.scissor.extent.width = info.width;
+    info.scissor.extent.height = info.height;
+    info.scissor.offset.x = 0;
+    info.scissor.offset.y = 0;
+    vkCmdSetScissor(info.cmds[index], 0, NUM_SCISSORS, &info.scissor);
+#endif
+}
+
 void init_scissors2(struct sample_info &info) {
 #ifdef __ANDROID__
     // Disable dynamic viewport on Android. Some drive has an issue with the dynamic scissors
@@ -2098,6 +2174,19 @@ void init_scissors2(struct sample_info &info) {
     info.scissor.offset.x = 0;
     info.scissor.offset.y = 0;
     vkCmdSetScissor(info.cmd2, 0, NUM_SCISSORS, &info.scissor);
+#endif
+}
+
+void init_scissors2_array(struct sample_info &info, int index) {
+#ifdef __ANDROID__
+    // Disable dynamic viewport on Android. Some drive has an issue with the dynamic scissors
+    // feature.
+#else
+    info.scissor.extent.width = info.width;
+    info.scissor.extent.height = info.height;
+    info.scissor.offset.x = 0;
+    info.scissor.offset.y = 0;
+    vkCmdSetScissor(info.cmd2s[index], 0, NUM_SCISSORS, &info.scissor);
 #endif
 }
 
@@ -2180,9 +2269,18 @@ void destroy_command_buffer(struct sample_info &info) {
     vkFreeCommandBuffers(info.device, info.cmd_pool, 1, cmd_bufs);
 }
 
+
+void destroy_command_buffer_array(struct sample_info &info) {
+    vkFreeCommandBuffers(info.device, info.cmd_pool, NUM_BUFFERS, info.cmds);
+}
+
 void destroy_command_buffer2(struct sample_info &info){
     VkCommandBuffer cmd_bufs[1] = {info.cmd2};
     vkFreeCommandBuffers(info.device, info.cmd_pool, 1, cmd_bufs);
+}
+
+void destroy_command_buffer2_array(struct sample_info &info){
+  vkFreeCommandBuffers(info.device, info.cmd_pool, NUM_BUFFERS, info.cmd2s);
 }
 
 void destroy_command_pool(struct sample_info &info) { vkDestroyCommandPool(info.device, info.cmd_pool, NULL); }

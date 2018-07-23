@@ -52,7 +52,9 @@ void execute_present_image(struct sample_info &info);
 void init_swapchain_extension(struct sample_info &info);
 void init_command_pool(struct sample_info &info);
 void init_command_buffer(struct sample_info &info);
+void init_command_buffer_array(struct sample_info &info);
 void init_command_buffer2(struct sample_info &info);
+void init_command_buffer2_array(struct sample_info &info);
 void execute_begin_command_buffer(struct sample_info &info);
 void execute_end_command_buffer(struct sample_info &info);
 void execute_queue_command_buffer(struct sample_info &info);
@@ -88,9 +90,13 @@ void init_texture(struct sample_info &info, const char *textureName = nullptr,
                   VkImageUsageFlags extraUsages = 0,
                   VkFormatFeatureFlags extraFeatures = 0);
 void init_viewports(struct sample_info &info);
+void init_viewports_array(struct sample_info &info, int index);
 void init_viewports2(struct sample_info &info);
+void init_viewports2_array(struct sample_info &info, int index);
 void init_scissors(struct sample_info &info);
+void init_scissors_array(struct sample_info &info, int index);
 void init_scissors2(struct sample_info &info);
+void init_scissors2_array(struct sample_info &info, int index);
 void init_fence(struct sample_info &info, VkFence &fence);
 void init_submit_info(struct sample_info &info, VkSubmitInfo &submit_info,
                       VkPipelineStageFlags &pipe_stage_flags);
@@ -119,6 +125,8 @@ void destroy_depth_buffer(struct sample_info &info);
 void destroy_swap_chain(struct sample_info &info);
 void destroy_command_buffer(struct sample_info &info);
 void destroy_command_buffer2(struct sample_info &info);
+void destroy_command_buffer_array(struct sample_info &info);
+void destroy_command_buffer2_array(struct sample_info &info);
 void destroy_command_pool(struct sample_info &info);
 void destroy_device(struct sample_info &info);
 void destroy_instance(struct sample_info &info);

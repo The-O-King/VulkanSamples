@@ -70,6 +70,9 @@
 /* Amount of time, in nanoseconds, to wait for a command buffer to complete */
 #define FENCE_TIMEOUT 100000000
 
+/* Number of command buffers that can be stored in the array */
+#define NUM_BUFFERS 10000
+
 #define GET_INSTANCE_PROC_ADDR(inst, entrypoint)                               \
     {                                                                          \
         info.fp##entrypoint =                                                  \
@@ -232,6 +235,8 @@ struct sample_info {
 
     VkCommandBuffer cmd; // Buffer for initialization commands
     VkCommandBuffer cmd2; // Place to hold secondary command buffer
+    VkCommandBuffer cmds[NUM_BUFFERS]; // Place to hold a lot of buffers
+    VkCommandBuffer cmd2s[NUM_BUFFERS]; // Place to hold a lot of 2nd buffers
     VkPipelineLayout pipeline_layout;
     std::vector<VkDescriptorSetLayout> desc_layout;
     VkPipelineCache pipelineCache;
