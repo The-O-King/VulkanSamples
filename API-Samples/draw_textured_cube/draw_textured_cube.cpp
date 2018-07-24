@@ -82,8 +82,9 @@ int sample_main(int argc, char *argv[]) {
     init_device(info);
 
     init_command_pool(info);
-    init_command_buffer(info);
-    init_command_buffer2(info);
+    init_command_buffer(info);        // Primary command buffer to hold secondaries
+    init_command_buffer_array(info);  // Array of primary command buffers
+    init_command_buffer2_array(info); // Array containing all secondary buffers
     execute_begin_command_buffer(info);
     init_device_queue(info);
     init_swap_chain(info);
@@ -128,9 +129,9 @@ int sample_main(int argc, char *argv[]) {
     assert(res == VK_SUCCESS);
 
 #ifdef __ANDROID__
-  int frames = 2000;
+  int frames = 100;
 #else
-  int frames = 200000;
+  int frames = 100;
 #endif
     auto start = std::chrono::high_resolution_clock::now();
     for (int x = 0; x < frames; x++){
@@ -167,8 +168,9 @@ int sample_main(int argc, char *argv[]) {
     destroy_uniform_buffer(info);
     destroy_depth_buffer(info);
     destroy_swap_chain(info);
+    destroy_command_buffer2_array(info);
+    destroy_command_buffer_array(info);
     destroy_command_buffer(info);
-    destroy_command_buffer2(info);
     destroy_command_pool(info);
     destroy_device(info);
     destroy_window(info);
