@@ -34,11 +34,7 @@ void primaryCommandBufferBenchmark(sample_info &info, VkClearValue *clear_values
 
     init_viewports_array(info, x);
     init_scissors_array(info, x);
-    /*
-      for (int y = 0; y < 100; y++){
-      vkCmdDraw(info.cmd, 12, 1, 12 * (y % 3), 0);
-      }
-    */
+
     vkCmdDraw(info.cmds[x], 0, 1, 0, 0);
     vkCmdEndRenderPass(info.cmds[x]);
     res = vkEndCommandBuffer(info.cmds[x]);
@@ -112,14 +108,8 @@ void secondaryCommandBufferBenchmark(sample_info &info, VkClearValue *clear_valu
                             info.desc_set.data(), 0, NULL);
     const VkDeviceSize offsets[1] = {0};
     vkCmdBindVertexBuffers(info.cmd2s[x], 0, 1, &info.vertex_buffer.buf, offsets);
-
     init_viewports2_array(info, x);
     init_scissors2_array(info, x);
-    /*
-      for (int y = 0; y < 100; y++){
-      vkCmdDraw(info.cmd2, 12, 1, 12 * (y % 3), 0);
-      }
-    */
     vkCmdDraw(info.cmd2s[x], 0, 1, 0, 0);
     vkEndCommandBuffer(info.cmd2s[x]);
   }
