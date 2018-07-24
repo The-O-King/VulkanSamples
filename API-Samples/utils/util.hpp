@@ -71,7 +71,11 @@
 #define FENCE_TIMEOUT 100000000
 
 /* Number of command buffers that can be stored in the array */
+#ifdef __ANDROID__
+#define NUM_BUFFERS 1000
+#else
 #define NUM_BUFFERS 10000
+#endif
 
 #define GET_INSTANCE_PROC_ADDR(inst, entrypoint)                               \
     {                                                                          \

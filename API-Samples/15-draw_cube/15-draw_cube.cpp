@@ -128,7 +128,7 @@ int sample_main(int argc, char *argv[]) {
     assert(res == VK_SUCCESS);
 
 #ifdef __ANDROID__
-    int frames = 2;
+    int frames = 100;
 #else
     int frames = 100;
 #endif
@@ -142,7 +142,7 @@ int sample_main(int argc, char *argv[]) {
       // TODO: Deal with the VK_SUBOPTIMAL_KHR and VK_ERROR_OUT_OF_DATE_KHR
       // return codes
       assert(res == VK_SUCCESS);
-      secondaryCommandBufferBenchmark(info, clear_values, drawFence, imageAcquiredSemaphore);
+      primaryCommandBufferBenchmark(info, clear_values, drawFence, imageAcquiredSemaphore);
     }
     auto finish = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = finish - start;
