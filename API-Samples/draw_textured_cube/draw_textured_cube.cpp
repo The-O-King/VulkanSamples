@@ -117,6 +117,7 @@ int sample_main(int argc, char *argv[]) {
     imageAcquiredSemaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
     imageAcquiredSemaphoreCreateInfo.pNext = NULL;
     imageAcquiredSemaphoreCreateInfo.flags = 0;
+
     res = vkCreateSemaphore(info.device, &imageAcquiredSemaphoreCreateInfo, NULL, &imageAcquiredSemaphore);
     assert(res == VK_SUCCESS);
 
@@ -128,22 +129,25 @@ int sample_main(int argc, char *argv[]) {
     res = vkCreateFence(info.device, &fenceInfo, NULL, &drawFence);
     assert(res == VK_SUCCESS);
 
-#ifdef __ANDROID__
-  int frames = 100;
-#else
-  int frames = 100;
-#endif
+    int frames = 100;
     auto start = std::chrono::high_resolution_clock::now();
-    for (int x = 0; x < frames; x++){
-      info.current_buffer = x % info.swapchainImageCount;
+    for (int x = 0; x < frames; x++) {
+        info.current_buffer = x % info.swapchainImageCount;
 
-      // Get the index of the next available swapchain image:
-      res = vkAcquireNextImageKHR(info.device, info.swap_chain, UINT64_MAX, imageAcquiredSemaphore, VK_NULL_HANDLE,
-                                  &info.current_buffer);
-      // TODO: Deal with the VK_SUBOPTIMAL_KHR and VK_ERROR_OUT_OF_DATE_KHR
-      // return codes
-      assert(res == VK_SUCCESS);
-      primaryCommandBufferBenchmark(info, clear_values, drawFence, imageAcquiredSemaphore);
+        // Get the index of the next available swapchain image:
+        res = vkAcquireNextImageKHR(info.device,
+                                    info.swap_chain,
+                                    UINT64_MAX,
+                                    imageAcquiredSemaphore,
+                                    VK_NULL_HANDLE,
+                                    &info.current_buffer);
+        // TODO: Deal with the VK_SUBOPTIMAL_KHR and VK_ERROR_OUT_OF_DATE_KHR
+        // return codes
+        assert(res == VK_SUCCESS);
+        primaryCommandBufferBenchmark2(info,
+                                        clear_values,
+                                        drawFence,
+                                        imageAcquiredSemaphore);
     }
     auto finish = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = finish - start;
@@ -154,8 +158,8 @@ int sample_main(int argc, char *argv[]) {
     /* VULKAN_KEY_END */
     if (info.save_images) write_ppm(info, "draw_textured_cube");
 
-    vkDestroyFence(info.device, drawFence, NULL);
     vkDestroySemaphore(info.device, imageAcquiredSemaphore, NULL);
+    vkDestroyFence(info.device, drawFence, NULL);
     destroy_pipeline(info);
     destroy_pipeline_cache(info);
     destroy_textures(info);
