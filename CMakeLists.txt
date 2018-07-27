@@ -340,9 +340,3 @@ endmacro()
 if (BUILD_API_SAMPLES)
     add_subdirectory(API-Samples)
 endif()
-
-add_subdirectory(Sample-Programs/Hologram)
-
-if (BUILD_SAMPLE_LAYERS)
-    add_subdirectory(Layer-Samples/Overlay)
-endif()

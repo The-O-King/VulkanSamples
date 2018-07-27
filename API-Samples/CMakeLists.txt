@@ -254,20 +254,8 @@ option(ANDROID OFF)
 
 # simple one file sample targets, no additional files
 set (S_TARGETS
-    01-init_instance 02-enumerate_devices 03-init_device 04-init_command_buffer
-    05-init_swapchain 06-init_depth_buffer 07-init_uniform_buffer
-    08-init_pipeline_layout 09-init_descriptor_set 10-init_render_pass
-    11-init_shaders 12-init_frame_buffers 13-init_vertex_buffer 14-init_pipeline 15-draw_cube
-    16-vulkan_1_1
-    enumerate_devices_adv init_texture multithreaded_command_buffers
-    draw_textured_cube dynamic_uniform texel_buffer events
-    instance_layer_properties instance_extension_properties
-    instance_layer_extension_properties create_debug_report_callback
-    enable_validation_with_callback multiple_sets
-    copy_blit_image template separate_image_sampler input_attachment
-    occlusion_query pipeline_cache pipeline_derivative push_descriptors
-    immutable_sampler push_constants draw_subpasses secondary_command_buffer
-    spirv_assembly spirv_specialization memory_barriers validation_cache vulkan_1_1_flexible)
+    13-init_vertex_buffer 15-draw_cube
+    draw_textured_cube)
 sampleWithSingleFile()
 
 if (NOT ANDROID)
