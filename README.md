@@ -1,38 +1,12 @@
 # Vulkan Samples
-  - This repository is a collection of Vulkan C++ sample applications.
-  - Run the following script to obtain a short description of all or a 
-    specific sample:
-    `$ API-Samples/get-short-descripts.sh`
-  - Run the following script to obtain a more detailed description of all
-    samples with a long description set:
-    `$ API-Samples/get-descripts.sh`
-
-## CI Build Status
-| Platform | Build Status |
-|:--------:|:------------:|
-| Linux/Android | [![Build Status](https://travis-ci.org/LunarG/VulkanSamples.svg?branch=master)](https://travis-ci.org/LunarG/VulkanSamples) |
-| Windows | [![Build status](https://ci.appveyor.com/api/projects/status/c5l2y9nk7wve9xvu/branch/master?svg=true)](https://ci.appveyor.com/project/karl-lunarg/vulkansamples/branch/master) |
-
-## Structure
-  - The Vulkan Samples repo is a set of source and data files in a specific
-    directory hierarchy:
-      - API-Samples - Samples that demonstrate the use of various aspects of the
-        Vulkan API
-      - Vulkan Tutorial - Steps you through the process of creating a simple Vulkan application, learning the basics along the way. This [Vulkan Tutorial link](https://vulkan.lunarg.com/doc/sdk/latest/windows/tutorial/html/index.html) allows you to view the Vulkan Tutorial on LunarXchange as well. 
-      - Sample-Programs - Samples that are more functional and go deeper than simple API use.
-      - Layer-Samples - Samples that are implemented as layers.
-      - Android-Only - Samples that are only meant to be run on Android
-
-## Sample progression
-  - In general, the samples are not interrelated, but there is a progression
-      among some of the samples that lead to drawing a cube.  Start with the
-      instance sample, then enumerate-adv, device, initcommandbuffer, initswapchain, initdepthbuffer,
-      inituniformbuffer, descriptor_pipeline_layouts, initrenderpass, initshaders,
-      initframebuffers, vertexbuffer, allocdescriptorsets, initpipeline, and they
-      culminate in the drawcube sample.  Each sample uses utility routines from
-      the code from previous samples to get to the point to show something new.
-      The drawtexturedcube sample takes all of the drawcube code and adds texturing.
-
+  - This fork of the LunarG Vulkan Samples repo contains the source for performance tests that looked at the difference in performance between primary and secondary command buffer overhead across different platforms
+  - This source has since been moved into the ANGLE project repository as part of their performance test suite at [this link](https://github.com/google/angle/tree/master/src/tests/perf_tests) in the file VulkanCommandBufferPerf.cpp
+    - The utility functions can be found at [this link](https://github.com/google/angle/tree/master/src/tests/test_utils) under third_party/*
+  - The build instructions below are still relevent if you would like to build and run the tests yourself
+  - The samples have been cut down to just 15-draw_cube and draw-textured-cube (and some unfinished work in 13-vertex_buffer)
+  - Benchmark implementations can be found in the API-Samples/utils/draw_benchmarks.cpp file
+  
+  
 ## Linux Dependencies
 
 Several packages are needed to be able to build the samples under Linux.  Execute:
@@ -128,43 +102,6 @@ cd build32
 cmake -G "Visual Studio 12" ..
 msbuild ALL_BUILD.vcxproj /p:Platform=x86 /p:Configuration=Release
 ```
-## Contributing
-  Refer to the README.contrib file for specific info regarding contributing to
-  the Vulkan samples creation effort.
-
-=======
-| Linux/Android | [![Build Status](https://travis-ci.org/KhronosGroup/Vulkan-LoaderAndValidationLayers.svg?branch=master)](https://travis-ci.org/KhronosGroup/Vulkan-LoaderAndValidationLayers) |
-| Windows |[![Build status](https://ci.appveyor.com/api/projects/status/ri4584d6qramrjiv/branch/master?svg=true)](https://ci.appveyor.com/project/Khronoswebmaster/vulkan-loaderandvalidationlayers/branch/master) |
-
-
-## Introduction
-
-Vulkan is an Explicit API, enabling direct control over how GPUs actually work. By design, minimal error checking is done inside
-a Vulkan driver. Applications have full control and responsibility for correct operation. Any errors in
-how Vulkan is used can result in a crash. This project provides Vulkan validation layers that can be enabled
-to assist development by enabling developers to verify their applications correct use of the Vulkan API.
-
-Vulkan supports multiple GPUs and multiple global contexts (VkInstance). The ICD loader is necessary to
-support multiple GPUs and VkInstance-level Vulkan commands.  Additionally, the loader manages inserting
-Vulkan layer libraries such as validation layers between the application and the ICD.
-
-The following components are available in this repository:
-- [Vulkan header files](include/vulkan/)
-- [*ICD Loader*](loader/)
-- [*Validation Layers*](layers/)
-- [*Mock ICD*](icd/)
-- [*Demos*](demos/)
-- [*Tests*](tests/)
-
-## Contact Information
-* [Tobine Ehlis](mailto:tobine@google.com)
-* [Mark Lobodzinski](mailto:mark@lunarg.com)
-
-## Information for Developing or Contributing:
-
-Please see the [CONTRIBUTING.md](CONTRIBUTING.md) file in this repository for more details.
-Please see the [GOVERNANCE.md](GOVERNANCE.md) file in this repository for repository management details.
-
 ## How to Build and Run
 
 [BUILD.md](BUILD.md)
